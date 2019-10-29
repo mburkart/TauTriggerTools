@@ -5,7 +5,7 @@ import ROOT
 class fittingTool():
 	
 	#p0values = [0.2, 0.8, 1.5, 2.5, 5.]			#Alpha
-	p0values = [0.2, 0.8, 1.5]			#Alpha
+	p0values = [0.2, 0.8, 1.5, 0.3]			#Alpha
 
 	p1values_lowAlpha = [5., 2., 1.5]			#n
 	p1values_highAlpha = [3., 1.03]
