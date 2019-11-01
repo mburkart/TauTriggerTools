@@ -1,4 +1,7 @@
 import json
+import numpy as np
+import re
+import ROOT
 
 def Load(file_name):
     with open(file_name) as f:
@@ -33,3 +36,21 @@ def LoadAsVPSet(file_name):
         if is_tag:
             tag_path_names.append(str(trig_name))
     return trig_vpset, tag_path_names
+
+def LoadTriggerDictionary(file):
+    df_support = ROOT.RDataFrame('summary', file)
+    summary = df_support.AsNumpy()
+    trigger_index = np.array(summary['trigger_index'][0])
+    trigger_pattern = np.array(summary['trigger_pattern'][0])
+    trigger_dict = {}
+    for n in range(len(trigger_pattern)):
+        trigger_dict[trigger_pattern[n]] = trigger_index[n]
+    return trigger_dict
+
+def GetMatchedTriggers(trigger_dict, pattern):
+    reg_ex = re.compile(pattern)
+    matched = {}
+    for name, pos in trigger_dict.items():
+        if reg_ex.match(name) is not None:
+            matched[name] = pos
+    return matched
