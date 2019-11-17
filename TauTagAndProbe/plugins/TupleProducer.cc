@@ -28,7 +28,7 @@ This file is part of https://github.com/cms-tau-pog/TauTriggerTools. */
 #include "TauTriggerTools/Common/interface/GenTruthTools.h"
 #include "TauTriggerTools/Common/interface/PatHelpers.h"
 #include "TauTriggerTools/Common/interface/TriggerDescriptor.h"
-#include "TauTriggerTools/TauTagAndProbe/interface/EventTuple.h"
+#include "TauTriggerTools/TauTagAndProbe/interface/SummaryTuple.h"
 
 namespace tau_trigger {
 
@@ -70,9 +70,7 @@ public:
         triggerObjects_token(consumeIT<pat::TriggerObjectStandAloneCollection>(cfg, "triggerObjects")),
         l1Taus_token(consumeIT<l1t::TauBxCollection>(cfg, "l1Taus")),
         triggerDescriptors(cfg.getParameter<edm::VParameterSet>("hltPaths")),
-        data(producerData),
-        eventTuple(*data->eventTuple),
-        selection(*data->selection)
+        data(*producerData)
     {
         produces<bool>();
     }
@@ -117,16 +115,17 @@ private:
     virtual void produce(edm::Event& event, const edm::EventSetup&) override
     {
         event.put(std::make_unique<bool>(true));
-        TupleProducerData::LockGuard lock(data->eventTuple->GetMutex());
+        TupleProducerData::LockGuard lock(data.eventTuple->GetMutex());
         try {
-            Cutter cut(&selection);
+            Cutter cut(data.selection.get());
             fillTuple(event, cut);
         } catch(cuts::cut_failed&) {}
-        selection.fill_selection();
+        data.selection->fill_selection();
     }
 
     void fillTuple(edm::Event& event, Cutter& cut)
     {
+        EventTuple& eventTuple = *data.eventTuple;
         cut(true, "total");
         eventTuple().run  = event.id().run();
         eventTuple().lumi = event.id().luminosityBlock();
@@ -290,8 +289,12 @@ private:
                 eventTuple().hltObj_mass.push_back(static_cast<float>(hlt_obj.polarP4().mass()));
                 eventTuple().hltObj_hasPathName.push_back(match_entry.second.hasPathName.to_ullong());
                 eventTuple().hltObj_isBestMatch.push_back(match_entry.second.isBestMatch.to_ullong());
-                eventTuple().hltObj_hasFilters_1.push_back(match_entry.second.getHasFilters(0).to_ullong());
-                eventTuple().hltObj_hasFilters_2.push_back(match_entry.second.getHasFilters(1).to_ullong());
+                const size_t hltObj_index = eventTuple().hltObj_pt.size() - 1;
+                for(const std::string& filter : match_entry.second.filters) {
+                    eventTuple().filter_hltObj.push_back(hltObj_index);
+                    const uint32_t hash = SummaryProducerData::GetData().getFilterHash(filter);
+                    eventTuple().filter_hash.push_back(hash);
+                }
             }
 
             auto l1Tau = MatchL1Taus(tau_ref_p4, *l1Taus, deltaR2Thr, 0);
@@ -326,9 +329,7 @@ private:
     edm::EDGetTokenT<l1t::TauBxCollection> l1Taus_token;
 
     TriggerDescriptorCollection triggerDescriptors;
-    const TupleProducerData* data;
-    EventTuple& eventTuple;
-    SelectionHist& selection;
+    const TupleProducerData& data;
 };
 
 } // namespace tau_trigger

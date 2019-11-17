@@ -42,10 +42,8 @@ struct TriggerObjectMatchResult {
     unsigned objType;
 
     TriggerResults hasPathName, isBestMatch;
-    std::map<size_t, TriggerResults> hasFilters;
     std::set<size_t> descIndices;
-
-    TriggerResults getHasFilters(size_t index) const;
+    std::vector<std::string> filters;
 };
 
 struct FullTriggerResults {
