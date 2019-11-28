@@ -3,8 +3,9 @@
 # This file is part of https://github.com/cms-tau-pog/TauTriggerTools.
 
 import argparse
-import subprocess
 import sys
+import re
+from sets import Set
 
 parser = argparse.ArgumentParser(description='Submit jobs on CRAB.',
                   formatter_class = lambda prog: argparse.HelpFormatter(prog,width=90))
@@ -30,15 +31,46 @@ parser.add_argument('--maxMemory', required=False, type=int, default=2000,
 					help="maximum amount of memory (in MB) a job is allowed to use (default: 2000 MB )")
 parser.add_argument('--numCores', required=False, type=int, default=1, help="number of cores per job (default: 1)")
 parser.add_argument('--allowNonValid', action="store_true", help="Allow nonvalid dataset as an input.")
-parser.add_argument('job_file', type=str, nargs='+', help="text file with jobs descriptions")
+parser.add_argument('--jobFile', required=True, type=str, help="text file with jobs descriptions")
 args = parser.parse_args()
 
-for job_file in args.job_file:
-    cmd = 'crab_submit_file.py --jobFile "{}"'.format(job_file)
-    for arg_name,arg_value in vars(args).iteritems():
-        if arg_name == 'job_file' and (type(arg_value) != str or len(arg_value)):
-            cmd += ' {} {} '.format(arg_name, arg_value)
-    result = subprocess.call([cmd], shell=True)
-    if result != 0:
-        print('ERROR: failed to submit jobs from "{}"'.format(job_file))
-        sys.exit(1)
+from CRABClient.UserUtilities import config, ClientException, getUsernameFromSiteDB
+from CRABAPI.RawCommand import crabCommand
+from httplib import HTTPException
+
+config = config()
+
+config.General.workArea = args.workArea
+
+config.JobType.pluginName = 'Analysis'
+config.JobType.psetName = args.cfg
+config.JobType.maxMemoryMB = args.maxMemory
+config.JobType.numCores = args.numCores
+
+config.Data.inputDBS = args.inputDBS
+config.Data.allowNonValidInputDataset = args.allowNonValid
+config.General.transferOutputs = True
+config.General.transferLogs = False
+config.Data.publication = False
+
+config.Site.storageSite = args.site
+config.Data.outLFNDirBase = "/store/user/{}/{}".format(getUsernameFromSiteDB(), args.output)
+
+if len(args.blacklist) != 0:
+	config.Site.blacklist = re.split(',', args.blacklist)
+if len(args.whitelist) != 0:
+	config.Site.whitelist = re.split(',', args.whitelist)
+
+job_names = Set(filter(lambda s: len(s) != 0, re.split(",", args.jobNames)))
+
+from TauTriggerTools.Common.crabTools import JobCollection
+try:
+    for job_file in args.job_file:
+        job_collection = JobCollection(job_file, job_names, args.lumiMask, args.jobNameSuffix)
+        print job_file
+        print job_collection
+        print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
+        job_collection.submit(config, args.splitting, args.unitsPerJob)
+except RuntimeError as err:
+    print >> sys.stderr, "ERROR:", str(err)
+    sys.exit(1)

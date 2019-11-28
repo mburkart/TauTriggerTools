@@ -71,19 +71,13 @@ private:
 
 public:
     SummaryProducerData(TFile& file, bool createExpressTuple) :
-        start(clock::now())
+        start(clock::now()), summaryTuple(std::make_unique<SummaryTuple>("summary", &file, false))
     {
-        std::cout << "--A1" << std::endl;
-        summaryTuple = std::make_unique<SummaryTuple>("summary", &file, false);
-        std::cout << "--A1.5" << std::endl;
         if(createExpressTuple)
             expressTuple = std::make_unique<ExpressTuple>("all_events", &file, false);
-        std::cout << "--A2" << std::endl;
         if(GetDataPtr() != nullptr)
             throw analysis::exception("Having multiple instances of SummaryProducerData is not supported.");
-        std::cout << "--A3" << std::endl;
         GetDataPtr() = this;
-        std::cout << "--A4" << std::endl;
     }
 
     SummaryTuple* getSummaryTuple() const { return summaryTuple.get(); }

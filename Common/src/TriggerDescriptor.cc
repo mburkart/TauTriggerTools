@@ -95,15 +95,16 @@ FullTriggerResults TriggerDescriptorCollection::matchTriggerObjects(
         double dR2_bestMatch = deltaR2Thr;
         for(size_t obj_index = 0; obj_index < triggerObjects.size(); ++obj_index) {
             const auto& hlt_obj = triggerObjects.at(obj_index);
-            if((obj_types.at(obj_index) & trig_desc.type_mask) == 0) continue;
             const double deltaR2 = ROOT::Math::VectorUtil::DeltaR2(ref_p4, hlt_obj.polarP4());
             if(deltaR2 >= deltaR2Thr) continue;
             if(!hlt_obj.hasPathName(path_name, true, false)) continue;
-            if(deltaR2 < dR2_bestMatch) {
-                best_matched_obj_index = obj_index;
-                dR2_bestMatch = deltaR2;
+            if((obj_types.at(obj_index) & trig_desc.type_mask) != 0) {
+                if(deltaR2 < dR2_bestMatch) {
+                    best_matched_obj_index = obj_index;
+                    dR2_bestMatch = deltaR2;
+                }
+                results.acceptAndMatch.set(desc_index);
             }
-            results.acceptAndMatch.set(desc_index);
             auto& match_result = results.matchResults[obj_index];
             match_result.hltObjIndex = obj_index;
             match_result.objType = obj_types.at(obj_index);

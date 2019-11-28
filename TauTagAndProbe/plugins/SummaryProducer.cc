@@ -42,19 +42,15 @@ public:
         file.SetCompressionAlgorithm(ROOT::kLZ4);
         file.SetCompressionLevel(4);
         const bool isMC = cfg.getParameter<bool>("isMC");
-        std::cout << "--A" << std::endl;
         auto data = std::make_unique<SummaryProducerData>(file, isMC);
-        std::cout << "--B" << std::endl;
         SummaryTuple& summaryTuple = *data->getSummaryTuple();
         summaryTuple().numberOfProcessedEvents = 0;
         summaryTuple().totalGenEventWeight = 0;
-        std::cout << "--C" << std::endl;
         TriggerDescriptorCollection hltPaths(cfg.getParameter<edm::VParameterSet>("hltPaths"));
         for(unsigned n = 0; n < hltPaths.size(); ++n) {
             summaryTuple().trigger_index.push_back(n);
             summaryTuple().trigger_pattern.push_back(hltPaths.at(n).path);
         }
-        std::cout << "--D" << std::endl;
         return data;
     }
 

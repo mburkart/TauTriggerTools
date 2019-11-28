@@ -1,7 +1,6 @@
 import json
 import numpy as np
 import re
-import ROOT
 
 def Load(file_name):
     with open(file_name) as f:
@@ -38,6 +37,7 @@ def LoadAsVPSet(file_name):
     return trig_vpset, tag_path_names
 
 def LoadTriggerDictionary(file):
+    import ROOT
     df_support = ROOT.RDataFrame('summary', file)
     summary = df_support.AsNumpy()
     trigger_index = np.array(summary['trigger_index'][0])

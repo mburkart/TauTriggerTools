@@ -289,6 +289,7 @@ private:
                 eventTuple().hltObj_mass.push_back(static_cast<float>(hlt_obj.polarP4().mass()));
                 eventTuple().hltObj_hasPathName.push_back(match_entry.second.hasPathName.to_ullong());
                 eventTuple().hltObj_isBestMatch.push_back(match_entry.second.isBestMatch.to_ullong());
+                eventTuple().hltObj_miniAODIndex.push_back(match_entry.second.hltObjIndex);
                 const size_t hltObj_index = eventTuple().hltObj_pt.size() - 1;
                 for(const std::string& filter : match_entry.second.filters) {
                     eventTuple().filter_hltObj.push_back(hltObj_index);
