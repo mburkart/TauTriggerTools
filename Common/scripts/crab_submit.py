@@ -36,8 +36,11 @@ args = parser.parse_args()
 for job_file in args.job_file:
     cmd = 'crab_submit_file.py --jobFile "{}"'.format(job_file)
     for arg_name,arg_value in vars(args).iteritems():
-        if arg_name == 'job_file' and (type(arg_value) != str or len(arg_value)):
-            cmd += ' {} {} '.format(arg_name, arg_value)
+        if arg_name != 'job_file' and type(arg_value) != bool and (type(arg_value) != str or len(arg_value)):
+            cmd += ' --{} {} '.format(arg_name, arg_value)
+        elif type(arg_value) == bool:
+            cmd += ' --{} '.format(arg_name)
+    print '> {}'.format(cmd)
     result = subprocess.call([cmd], shell=True)
     if result != 0:
         print('ERROR: failed to submit jobs from "{}"'.format(job_file))
