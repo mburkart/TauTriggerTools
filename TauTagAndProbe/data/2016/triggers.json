@@ -9,14 +9,17 @@
             [ "hltL3crIsoL1sMu18erTauJet20erL1f0L2f10QL3f19QL3trkIsoFiltered0p09", "hltOverlapFilterIsoMu19LooseIsoPFTau20" ],
             [ "hltPFTau20TrackLooseIsoAgainstMuon", "hltOverlapFilterIsoMu19LooseIsoPFTau20" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "selection_etau": { "l1Tau_pt": 26, "l1Tau_hwIso": 0, "hltObj_pt": 30 },
+        "target_channels": [ "etau", "mutau" ]
     },
     "HLT_IsoMu19_eta2p1_LooseIsoPFTau20_SingleL1_v": {
         "filters": [
             [ "hltL3crIsoL1sSingleMu18erIorSingleMu20erL1f0L2f10QL3f19QL3trkIsoFiltered0p09", "hltOverlapFilterSingleIsoMu19LooseIsoPFTau20" ],
             [ "hltPFTau20TrackLooseIsoAgainstMuon", "hltOverlapFilterSingleIsoMu19LooseIsoPFTau20" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "etau", "mutau" ]
     },
     "HLT_IsoMu19_eta2p1_LooseCombinedIsoPFTau20_v": {
         "filters": [
@@ -30,14 +33,16 @@
             [ "hltL3crIsoL1sMu18erIsoTau26erL1f0L2f10QL3f19QL3trkIsoFiltered0p09", "hltOverlapFilterIsoMu19MediumIsoPFTau32Reg" ],
             [ "hltPFTau32TrackPt1MediumIsolationL1HLTMatchedReg", "hltOverlapFilterIsoMu19MediumIsoPFTau32Reg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ]
     },
     "HLT_IsoMu19_eta2p1_MediumCombinedIsoPFTau32_Trk1_eta2p1_Reg_v": {
         "filters": [
             [ "hltL3crIsoL1sMu18erIsoTau26erL1f0L2f10QL3f19QL3trkIsoFiltered0p09", "hltOverlapFilterIsoMu19MediumCombinedIsoPFTau32Reg" ],
             [ "hltPFTau32TrackPt1MediumCombinedIsolationL1HLTMatchedReg", "hltOverlapFilterIsoMu19MediumCombinedIsoPFTau32Reg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ]
     },
     "HLT_IsoMu19_eta2p1_TightCombinedIsoPFTau32_Trk1_eta2p1_Reg_v": {
         "filters": [

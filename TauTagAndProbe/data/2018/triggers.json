@@ -37,21 +37,32 @@
             [ "hltL3crIsoL1sBigOrMuXXerIsoTauYYerL1f0L2f10QL3f24QL3trkIsoFiltered0p07", "hltOverlapFilterIsoMu24MediumChargedIsoAndTightOOSCPhotonsPFTau35MonitoringReg" ],
             [ "hltSelectedPFTau35TrackPt1MediumChargedIsolationAndTightOOSCPhotonsL1HLTMatchedReg", "hltOverlapFilterIsoMu24MediumChargedIsoAndTightOOSCPhotonsPFTau35MonitoringReg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ],
+        "selection_ditau": { "hltObj_pt": 40 },
+        "max_run": 317509,
+        "sample_types": [ "data" ]
     },
     "HLT_IsoMu24_eta2p1_TightChargedIsoPFTau35_Trk1_eta2p1_Reg_CrossL1_v": {
         "filters": [
             [ "hltL3crIsoL1sBigOrMuXXerIsoTauYYerL1f0L2f10QL3f24QL3trkIsoFiltered0p07", "hltOverlapFilterIsoMu24TightChargedIsoPFTau35MonitoringReg" ],
             [ "hltSelectedPFTau35TrackPt1TightChargedIsolationL1HLTMatchedReg", "hltOverlapFilterIsoMu24TightChargedIsoPFTau35MonitoringReg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ],
+        "selection_ditau": { "hltObj_pt": 40 },
+        "max_run": 317509,
+        "sample_types": [ "data" ]
     },
     "HLT_IsoMu24_eta2p1_TightChargedIsoPFTau35_Trk1_TightID_eta2p1_Reg_CrossL1_v": {
         "filters": [
             [ "hltL3crIsoL1sBigOrMuXXerIsoTauYYerL1f0L2f10QL3f24QL3trkIsoFiltered0p07", "hltOverlapFilterIsoMu24TightChargedIsoAndTightOOSCPhotonsPFTau35MonitoringReg" ],
             [ "hltSelectedPFTau35TrackPt1TightChargedIsolationAndTightOOSCPhotonsL1HLTMatchedReg", "hltOverlapFilterIsoMu24TightChargedIsoAndTightOOSCPhotonsPFTau35MonitoringReg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ],
+        "max_run": 317509,
+        "sample_types": [ "data" ]
     },
     "HLT_IsoMu24_eta2p1_MediumChargedIsoPFTau50_Trk30_eta2p1_1pr_v": {
         "filters": [
@@ -65,7 +76,11 @@
             [ "hltL3crIsoL1sMu18erTau24erIorMu20erTau24erL1f0L2f10QL3f20QL3trkIsoFiltered0p07", "hltOverlapFilterIsoMu20LooseChargedIsoPFTau27L1Seeded" ],
             [ "hltSelectedPFTau27LooseChargedIsolationAgainstMuonL1HLTMatched", "hltOverlapFilterIsoMu20LooseChargedIsoPFTau27L1Seeded" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "selection_etau": { "l1Tau_pt": 26, "l1Tau_hwIso": 0, "hltObj_pt": 30 },
+        "target_channels": [ "etau", "mutau" ],
+        "max_run": 317509,
+        "sample_types": [ "data" ]
     },
     "HLT_IsoMu20_eta2p1_MediumChargedIsoPFTau27_eta2p1_CrossL1_v": {
         "filters": [
@@ -107,7 +122,11 @@
             [ "hltL3crIsoL1sMu18erTau24erIorMu20erTau24erL1f0L2f10QL3f20QL3trkIsoFiltered0p07", "hltHpsOverlapFilterIsoMu20LooseChargedIsoPFTau27L1Seeded" ],
             [ "hltHpsSelectedPFTau27LooseChargedIsolationAgainstMuonL1HLTMatched", "hltHpsOverlapFilterIsoMu20LooseChargedIsoPFTau27L1Seeded" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "selection_etau": { "l1Tau_pt": 26, "l1Tau_hwIso": 0, "hltObj_pt": 30 },
+        "target_channels": [ "etau", "mutau" ],
+        "min_run": 317509,
+        "sample_types": [ "data", "mc" ]
     },
     "HLT_IsoMu20_eta2p1_MediumChargedIsoPFTauHPS27_eta2p1_CrossL1_v": {
         "filters": [
@@ -149,7 +168,10 @@
             [ "hltL3crIsoL1sBigOrMuXXerIsoTauYYerL1f0L2f10QL3f20QL3trkIsoFiltered0p07", "hltHpsOverlapFilterIsoMu24MediumChargedIsoPFTau35MonitoringReg" ],
             [ "hltHpsSelectedPFTau35TrackPt1MediumChargedIsolationL1HLTMatchedReg", "hltHpsOverlapFilterIsoMu24MediumChargedIsoPFTau35MonitoringReg" ]
         ],
-        "leg_types": [ "mu", "tau" ]
+        "leg_types": [ "mu", "tau" ],
+        "target_channels": [ "ditau" ],
+        "min_run": 317509,
+        "sample_types": [ "data", "mc" ]
     },
     "HLT_IsoMu24_eta2p1_TightChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_CrossL1_v": {
         "filters": [

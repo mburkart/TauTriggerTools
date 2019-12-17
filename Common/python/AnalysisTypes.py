@@ -4,7 +4,7 @@ def EnumToString(cl, value):
         if getattr(cl, key) == value:
             return key
     raise RuntimeError('Value "{}" is not part of the enum "{}".'.format(value, cl.__name__))
-    
+
 def ParseEnum(cl, str_value):
     keys = [k for k in dir(cl) if k[0] != '_' ]
     for key in keys:
@@ -17,3 +17,19 @@ class TauSelection:
     pt = 2
     MVA = 4
     DeepTau = 8
+
+class Channel:
+    etau = 1
+    mutau = 2
+    ditau = 4
+
+class DiscriminatorWP:
+    VVVLoose = 0
+    VVLoose = 1
+    VLoose = 2
+    Loose = 3
+    Medium = 4
+    Tight = 5
+    VTight = 6
+    VVTight = 7
+    VVVTight = 8
