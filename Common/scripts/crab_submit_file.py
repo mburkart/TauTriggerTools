@@ -65,12 +65,11 @@ job_names = Set(filter(lambda s: len(s) != 0, re.split(",", args.jobNames)))
 
 from TauTriggerTools.Common.crabTools import JobCollection
 try:
-    for job_file in args.job_file:
-        job_collection = JobCollection(job_file, job_names, args.lumiMask, args.jobNameSuffix)
-        print job_file
-        print job_collection
-        print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
-        job_collection.submit(config, args.splitting, args.unitsPerJob)
+    job_collection = JobCollection(args.jobFile, job_names, args.lumiMask, args.jobNameSuffix)
+    print args.jobFile
+    print job_collection
+    print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
+    job_collection.submit(config, args.splitting, args.unitsPerJob)
 except RuntimeError as err:
     print >> sys.stderr, "ERROR:", str(err)
     sys.exit(1)
