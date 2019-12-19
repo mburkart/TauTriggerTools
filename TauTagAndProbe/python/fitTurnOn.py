@@ -60,9 +60,14 @@ class FitResults:
         for n in range(1, N):
             flat_eff, residuals, _, _, _ = np.polyfit(eff.x[N-n-1:], eff.y[N-n-1:], 0, w=1/yerr[N-n-1:], full=True)
             chi2_ndof = residuals[0] / n
+            #print(n, chi2_ndof)
             if (chi2_ndof > 0 and chi2_ndof < best_chi2_ndof) or eff.x[N-n-1] + eff.x_error_high[N-n-1] >= 100:
                 self.pt_start_flat = eff.x[N-n-1]
                 best_chi2_ndof = chi2_ndof
+        if best_chi2_ndof > 20:
+            print("Unable to determine the high pt region")
+            self.pt_start_flat = eff.x[-1]
+
         low_pt = eff.x <= self.pt_start_flat
         high_pt = eff.x >= self.pt_start_flat
 
@@ -113,10 +118,10 @@ file = ROOT.TFile(args.input, 'READ')
 output_file = ROOT.TFile('{}.root'.format(args.output), 'RECREATE', '', ROOT.RCompressionSetting.EDefaults.kUseSmallest)
 
 for channel in channels:
-    print('Processing {}'.format(channel))
     with PdfPages('{}_{}.pdf'.format(args.output, channel)) as pdf:
         for wp in working_points:
             for dm in decay_modes:
+                print('Processing {} {} WP DM = {}'.format(channel, wp, dm))
                 dm_label = '_dm{}'.format(dm) if dm != 'all' else ''
                 name_pattern = '{{}}_{}_{}{}_fit_eff'.format(channel, wp, dm_label)
                 dm_label = '_dm'+ dm if len(dm) > 0 else ''
