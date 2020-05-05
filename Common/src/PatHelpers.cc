@@ -26,8 +26,8 @@ std::vector<TauEntry> CollectTaus(const LorentzVectorM& muon_p4, const pat::TauC
         if(tau.polarP4().pt() > 18 && std::abs(tau.polarP4().eta()) < 2.3
                 && leadChargedHadrCand && std::abs(leadChargedHadrCand->dz()) < 0.2
                 && reco::deltaR2(muon_p4, tau.polarP4()) > deltaR2Thr) {
-            const bool pass_mva_sel = tau.tauID("againstMuonLoose3") > 0.5f;
-            const bool pass_deep_sel = tau.isTauIDAvailable("byDeepTau2017v2p1VSjetraw")
+            const bool pass_mva_sel = tau.isTauIDAvailable(mvaIdName) && tau.tauID("againstMuonLoose3") > 0.5f;
+            const bool pass_deep_sel = tau.isTauIDAvailable(deepIdName)
                 && tau.tauID("byVVVLooseDeepTau2017v2p1VSe") > 0.5f
                 && tau.tauID("byVLooseDeepTau2017v2p1VSmu") > 0.5f;
             if((pass_mva_sel || pass_deep_sel) && (!best_tau.count(TauSelection::pt)

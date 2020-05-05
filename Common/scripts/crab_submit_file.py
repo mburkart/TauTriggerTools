@@ -34,7 +34,8 @@ parser.add_argument('--allowNonValid', action="store_true", help="Allow nonvalid
 parser.add_argument('--jobFile', required=True, type=str, help="text file with jobs descriptions")
 args = parser.parse_args()
 
-from CRABClient.UserUtilities import config, ClientException, getUsernameFromSiteDB
+from CRABClient.UserUtilities import config, ClientException
+from CRABClient.UserUtilities import getUsernameFromCRIC as getUsername
 from CRABAPI.RawCommand import crabCommand
 from httplib import HTTPException
 
@@ -54,7 +55,7 @@ config.General.transferLogs = False
 config.Data.publication = False
 
 config.Site.storageSite = args.site
-config.Data.outLFNDirBase = "/store/user/{}/{}".format(getUsernameFromSiteDB(), args.output)
+config.Data.outLFNDirBase = "/store/user/{}/{}".format(getUsername(), args.output)
 
 if len(args.blacklist) != 0:
 	config.Site.blacklist = re.split(',', args.blacklist)

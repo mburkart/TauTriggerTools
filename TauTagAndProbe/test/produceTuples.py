@@ -27,6 +27,8 @@ options.register('globalTag', '', VarParsing.multiplicity.singleton, VarParsing.
                  "Global tag. If empty, it will be deduced based on the period.")
 options.register('isMC', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool, "MC or Data")
 options.register('runDeepTau', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool, "Run DeepTau IDs")
+options.register('relVal', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Minimal setup for RelVal")
 options.register('pureGenMode', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Don't apply any offline selection or tagging.")
 options.register('wantSummary', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -65,7 +67,7 @@ if len(options.lumiFile) > 0:
 year = getYear(options.period)
 
 # Update electron ID according recommendations from https://twiki.cern.ch/twiki/bin/view/CMS/EgammaMiniAODV2
-if options.pureGenMode:
+if options.relVal or options.pureGenMode:
     process.egammaPostRecoSeq = cms.Sequence()
 else:
     from RecoEgamma.EgammaTools.EgammaPostRecoTools import setupEgammaPostRecoSeq
@@ -77,21 +79,28 @@ else:
     setupEgammaPostRecoSeq(process, runVID=True, runEnergyCorrections=False, era=ele_era[year])
 
 # Update tau IDs according recommendations from https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuidePFTauID
-import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
-updatedTauName = "slimmedTausNewID"
-tauIdsToKeep = [ "2017v2" ]
-if options.runDeepTau:
-    tauIdsToKeep.append("deepTau2017v2p1")
-tauIdEmbedder = tauIdConfig.TauIDEmbedder(process, cms, debug=False, updatedTauName=updatedTauName,
-                                          toKeep=tauIdsToKeep)
-tauIdEmbedder.runTauID()
-tauSrc_InputTag = cms.InputTag(updatedTauName)
+process.tauSequence = cms.Sequence()
+if options.relVal:
+    tauSrc_InputTag = cms.InputTag("slimmedTaus")
+else:
+    import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+    updatedTauName = "slimmedTausNewID"
+    tauIdsToKeep = [ "2017v2" ]
+    if options.runDeepTau:
+        tauIdsToKeep.append("deepTau2017v2p1")
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(process, cms, debug=False, updatedTauName=updatedTauName,
+                                              toKeep=tauIdsToKeep)
+    tauIdEmbedder.runTauID()
+    process.tauSequence += process.rerunMvaIsolationSequence
+    process.tauSequence += getattr(process, updatedTauName)
+    tauSrc_InputTag = cms.InputTag(updatedTauName)
+
 
 # Update MET filters according recommendations from https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2
 # Using post-Moriond2019 (a more complete) list of noisy crystals
 process.metFilterSequence = cms.Sequence()
 customMetFilters = cms.PSet()
-if not options.pureGenMode and year in [ 2017, 2018 ]:
+if not (options.pureGenMode or options.relVal) and year in [ 2017, 2018 ]:
     process.load('RecoMET.METFilters.ecalBadCalibFilter_cfi')
     baddetEcallist = cms.vuint32([
         872439604,872422825,872420274,872423218,872423215,872416066,872435036,872439336,
@@ -120,7 +129,7 @@ else:
 
 # Re-apply MET corrections
 process.metSequence = cms.Sequence()
-if not options.pureGenMode and options.period in [ 'Run2016', 'Run2017' ]:
+if not (options.pureGenMode or options.relVal) and options.period in [ 'Run2016', 'Run2017' ]:
     met_run_params = { }
     if options.period == 'Run2017':
         met_run_params = {
@@ -203,8 +212,7 @@ process.p = cms.Path(
     process.metSequence +
     process.metFilterSequence +
     process.selectionFilter +
-    process.rerunMvaIsolationSequence +
-    getattr(process, updatedTauName) +
+    process.tauSequence +
     process.patTriggerUnpacker +
     process.tupleProducer
 )

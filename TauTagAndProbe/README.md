@@ -4,15 +4,12 @@ Set of tools to evaluate tau trigger performance on T&amp;P
 ### How to install
 
 ```
-cmsrel CMSSW_10_2_16
-cd CMSSW_10_2_16/src
+cmsrel CMSSW_10_2_20
+cd CMSSW_10_2_20/src
 cmsenv
 git cms-init
 git cms-addpkg RecoMET/METFilters
 git cms-merge-topic cms-egamma:EgammaPostRecoTools
-# if you want to run DeepTau
-git cms-merge-topic -u cms-tau-pog:CMSSW_10_2_X_tau-pog_DeepTau2017v2p1_nanoAOD
-
 git clone -o cms-tau-pog git@github.com:cms-tau-pog/TauTriggerTools.git
 scram b -j4
 ```
