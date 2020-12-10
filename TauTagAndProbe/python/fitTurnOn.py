@@ -16,6 +16,7 @@ from sklearn.gaussian_process.kernels import Matern, ConstantKernel
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.TH1.SetDefaultSumw2()
 
 path_prefix = '' if 'TauTriggerTools' in os.getcwd() else 'TauTriggerTools/'
@@ -33,6 +34,7 @@ parser.add_argument('--working-points', required=False, type=str,
 args = parser.parse_args()
 
 def MinTarget(dy, eff):
+    # dy are the parameters to be fit. eff contains fixed parameters of the fit.
     y = np.cumsum(dy)
     return np.sum(((eff.y - y) / (eff.y_error_high + eff.y_error_low)) ** 2)
 
@@ -112,7 +114,7 @@ class FitResults:
 channels = args.channels.split(',')
 decay_modes = args.decay_modes.split(',')
 working_points = args.working_points.split(',')
-ch_validity_thrs = { 'etau': 35, 'mutau': 32, 'ditau': 40 }
+ch_validity_thrs = { 'etau': 35, 'mutau': 32, 'ditau': 40, 'ditauvbf': 25}
 
 file = ROOT.TFile(args.input, 'READ')
 output_file = ROOT.TFile('{}.root'.format(args.output), 'RECREATE', '', ROOT.RCompressionSetting.EDefaults.kUseSmallest)
