@@ -1,23 +1,3 @@
-<!-- <use name="SimDataFormats/GeneratorProducts"/>
-<use name="FWCore/Framework"/>
-<use name="FWCore/PluginManager"/>
-<use name="DataFormats/RecoCandidate"/>
-<use name="DataFormats/PatCandidates"/>
-<use name="CommonTools/Utils"/>
-<use name="CommonTools/CandAlgos"/>
-<use name="CommonTools/CandUtils"/>
-<use name="TauTagAndProbe/TauTagAndProbe"/>
-<use name="FWCore/ParameterSet"/>
-<use name="CommonTools/UtilAlgos"/>
-
-<library   file="*.cc" name="TauTagAndProbe">
-  <Flags CPPDEFINES="CMSSW_VERSION=$(shell echo ${CMSSW_VERSION}|sed -e s/CMSSW_// -e s/_//g -e s/patch\.//)"/>
-  <flags   EDM_PLUGIN="1"/>
-</library>
-
-
- -->
-
 <use name="FWCore/Framework"/>
 <use name="FWCore/PluginManager"/>
 <use name="FWCore/ParameterSet"/>
@@ -29,14 +9,6 @@
 <use name="CommonTools/UtilAlgos"/>
 <use name="FWCore/ServiceRegistry"/>
 <use name="HLTrigger/HLTcore"/>
-<use name="TauTriggerTools/TauTagAndProbe"/>
+<use name="TauTriggerTools/Common"/>
 
 <flags EDM_PLUGIN="1"/>
-
-<!-- <library name="TauTagAndProbePlugins" file="*.cc">
-    <use   name="FWCore/Framework"/>
-    <use   name="FWCore/MessageLogger"/>
-    <use   name="FWCore/ParameterSet"/>
-    <use   name="FWCore/Utilities"/>
-    <flags EDM_PLUGIN="1"/>
-</library> -->

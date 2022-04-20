@@ -1,5 +1,6 @@
 from array import array
 from math import sqrt
+import numpy as np
 
 class getbinning2018:
 
@@ -46,6 +47,16 @@ class getbinning2018:
 			edgesETau.append( float(i) )
 		for i in range(160, 600, 350 ) :
 			edgesETau.append( float(i) )
+
+		#ref_bins = np.concatenate((np.arange(20, 100, 1), np.arange(100, 200, 5), np.arange(200, 301, 10)))
+		ref_bins = np.concatenate((np.arange(20, 50, 1), np.arange(50, 100, 2), np.arange(100, 150, 5),
+                         np.arange(150, 200, 10), np.arange(200, 301, 20)))
+		edgesdiTau = ref_bins.tolist()
+		edgesMuTau = ref_bins.tolist()
+		edgesETau = ref_bins.tolist()
+		#edgesdiTau = np.arange(20, 501, 1).tolist()
+		#edgesMuTau = np.arange(20, 501, 1).tolist()
+		#edgesETau = np.arange(20, 501, 1).tolist()
 			
 		edgesdict ={"ditau":edgesdiTau, "mutau":edgesMuTau, "etau":edgesETau}
  	 	return edgesdict

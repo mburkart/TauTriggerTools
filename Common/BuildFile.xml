@@ -1,4 +1,7 @@
 <use name="root"/>
 <use name="boost"/>
+<use name="CLHEP"/>
 <use name="DataFormats/HepMCCandidate"/>
+<use name="DataFormats/PatCandidates"/>
+<use name="FWCore/ParameterSet"/>
 <export> <lib name="1"/> </export>

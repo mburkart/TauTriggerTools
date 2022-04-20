@@ -3,8 +3,10 @@
 *.so
 *.pdf
 *.zip
-fit.exe
 *~
-*#*
-*.d
 __init__.py
+output
+*.code-workspace
+/.python
+/.vscode
+.DS_Store
