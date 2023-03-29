@@ -31,6 +31,8 @@ parser.add_argument('--decay-modes', required=False, type=str, default='all,0,1,
 parser.add_argument('--working-points', required=False, type=str,
                     default='VVVLoose,VVLoose,VLoose,Loose,Medium,Tight,VTight,VVTight',
                     help="working points to process")
+parser.add_argument('--add-embedded', action="store_true",
+                    help='Add efficiencies for embedded samples.')
 args = parser.parse_args()
 
 def MinTarget(dy, eff):
@@ -45,6 +47,11 @@ class FitResults:
         N = eff.x.shape[0]
         res = scipy.optimize.minimize(MinTarget, np.zeros(N), args=(eff,), bounds = [ [0, 1] ] * N,
                                       options={"maxfun": int(1e6)})
+        # res = scipy.optimize.minimize(MinTarget, np.zeros(N), args=(eff,), bounds = [ [0, 1] ] * N,  # method="TNC", options={"maxiter":int(1e9), "eta":0.01})
+        #                               # options={"maxfun": int(1e7)}, method="SLSQP")# , "maxls": 80, "eps":1e-10, "maxcor":40})
+        #                               method="SLSQP")# , "maxls": 80, "eps":1e-10, "maxcor":40})
+        # res = iminuit.minimize(MinTarget, np.zeros(N), args=(eff,), bounds = [ [0, 1] ] * N,
+        #                        options={"disp": True})
         if not res.success:
             print(res)
             raise RuntimeError("Unable to prefit")
@@ -131,6 +138,9 @@ for channel in channels:
                 eff_mc_root = file.Get(name_pattern.format('mc'))
                 eff_data = Graph(root_graph=eff_data_root)
                 eff_mc = Graph(root_graph=eff_mc_root)
+                if args.add_embedded:
+                    eff_emb_root = file.Get(name_pattern.format('emb'))
+                    eff_emb = Graph(root_graph=eff_emb_root)
                 pred_step = 0.1
                 #x_low = min(eff_data.x[0] - eff_data.x_error_low[0], eff_mc.x[0] - eff_mc.x_error_low[0])
                 #x_high = max(eff_data.x[-1] + eff_data.x_error_high[-1], eff_mc.x[-1] + eff_mc.x_error_high[-1])
@@ -139,15 +149,25 @@ for channel in channels:
 
                 eff_data_fitted = FitResults(eff_data, x_pred)
                 eff_mc_fitted = FitResults(eff_mc, x_pred)
+                if args.add_embedded:
+                    eff_emb_fitted = FitResults(eff_emb, x_pred)
 
                 sf = eff_data_fitted.y_pred / eff_mc_fitted.y_pred
                 sf_sigma = np.sqrt( (eff_data_fitted.sigma_pred / eff_mc_fitted.y_pred) ** 2 \
                          + (eff_data_fitted.y_pred / (eff_mc_fitted.y_pred ** 2) * eff_mc_fitted.sigma_pred ) ** 2 )
 
+                # Add fit and computation for embedded samples.
+                if args.add_embedded:
+                    eff_emb_fitted = FitResults(eff_emb, x_pred)
+                    sf_emb = eff_data_fitted.y_pred / eff_emb_fitted.y_pred
+                    sf_emb_sigma = np.sqrt( (eff_data_fitted.sigma_pred / eff_emb_fitted.y_pred) ** 2 \
+                             + (eff_data_fitted.y_pred / (eff_emb_fitted.y_pred ** 2) * eff_emb_fitted.sigma_pred ) ** 2 )
+
                 fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True,
                                                            gridspec_kw = {'height_ratios':[2, 1]})
                 mc_color = 'g'
                 data_color = 'k'
+                emb_color = 'b'
                 trans = 0.3
 
                 plt_data = ax.errorbar(eff_data.x, eff_data.y, xerr=(eff_data.x_error_low, eff_data.x_error_high),
@@ -168,10 +188,25 @@ for channel in channels:
                                        (eff_mc_fitted.y_pred + eff_mc_fitted.sigma_pred)[::-1]]),
                         alpha=trans, fc=mc_color, ec='None')
 
-                ax_ratio.plot(x_pred, sf, 'b--')
+                ax_ratio.plot(x_pred, sf, 'k--')
                 ax_ratio.fill(np.concatenate([x_pred, x_pred[::-1]]),
                               np.concatenate([sf - sf_sigma, (sf + sf_sigma)[::-1]]),
-                              alpha=trans, fc='b', ec='None')
+                              alpha=trans, fc='k', ec='None')
+
+                if args.add_embedded:
+                    plt_emb = ax.errorbar(eff_emb.x, eff_emb.y, xerr=(eff_emb.x_error_low, eff_emb.x_error_high),
+                                         yerr=(eff_emb.y_error_low, eff_emb.y_error_high), fmt=emb_color+'.', markersize=5)
+
+                    plt_emb_fitted = ax.plot(x_pred, eff_emb_fitted.y_pred, emb_color+'--')
+                    ax.fill(np.concatenate([x_pred, x_pred[::-1]]),
+                            np.concatenate([eff_emb_fitted.y_pred - eff_emb_fitted.sigma_pred,
+                                           (eff_emb_fitted.y_pred + eff_emb_fitted.sigma_pred)[::-1]]),
+                            alpha=trans, fc=emb_color, ec='None')
+                    ax_ratio.plot(x_pred, sf_emb, 'b--')
+                    ax_ratio.fill(np.concatenate([x_pred, x_pred[::-1]]),
+                                  np.concatenate([sf_emb - sf_emb_sigma, (sf_emb + sf_emb_sigma)[::-1]]),
+                                  alpha=trans, fc='b', ec='None')
+
 
                 title = "Turn-ons for {} trigger with {} DeepTau VSjet".format(channel, wp)
                 if dm != 'all':
@@ -190,8 +225,12 @@ for channel in channels:
                 validity_plt = ax.plot( [ ch_validity_thrs[channel] ] * 2, ax.get_ylim(), 'r--' )
                 ax_ratio.plot( [ ch_validity_thrs[channel] ] * 2, ax_ratio.get_ylim(), 'r--' )
 
-                ax.legend([ plt_data, plt_mc, plt_data_fitted[0], plt_mc_fitted[0], validity_plt[0] ],
-                          [ "Data", "MC", "Data fitted", "MC fitted", "Validity range"], fontsize=12, loc='lower right')
+                if args.add_embedded:
+                    ax.legend([ plt_data, plt_mc, plt_emb, plt_data_fitted[0], plt_mc_fitted[0], plt_emb_fitted[0], validity_plt[0] ],
+                              [ "Data", "MC", "Embedded", "Data fitted", "MC fitted", "Embedded fitted", "Validity range"], fontsize=12, loc='lower right')
+                else:
+                    ax.legend([ plt_data, plt_mc, plt_data_fitted[0], plt_mc_fitted[0], validity_plt[0] ],
+                              [ "Data", "MC", "Data fitted", "MC fitted", "Validity range"], fontsize=12, loc='lower right')
 
 
                 plt.subplots_adjust(hspace=0)
@@ -201,6 +240,8 @@ for channel in channels:
                 out_name_pattern = '{{}}_{}_{}{}_{{}}'.format(channel, wp, dm_label)
                 output_file.WriteTObject(eff_data_root, out_name_pattern.format('data', 'eff'), 'Overwrite')
                 output_file.WriteTObject(eff_mc_root, out_name_pattern.format('mc', 'eff'), 'Overwrite')
+                if args.add_embedded:
+                    output_file.WriteTObject(eff_emb_root, out_name_pattern.format('emb', 'eff'), 'Overwrite')
                 eff_data_fitted_hist = Histogram.CreateTH1(eff_data_fitted.y_pred, [x_low, x_high],
                                                            eff_data_fitted.sigma_pred, fixed_step=True)
                 eff_mc_fitted_hist = Histogram.CreateTH1(eff_mc_fitted.y_pred, [x_low, x_high],
@@ -210,6 +251,13 @@ for channel in channels:
                 output_file.WriteTObject(eff_data_fitted_hist, out_name_pattern.format('data', 'fitted'), 'Overwrite')
                 output_file.WriteTObject(eff_mc_fitted_hist, out_name_pattern.format('mc', 'fitted'), 'Overwrite')
                 output_file.WriteTObject(sf_fitted_hist, out_name_pattern.format('sf', 'fitted'), 'Overwrite')
+                if args.add_embedded:
+                    eff_emb_fitted_hist = Histogram.CreateTH1(eff_emb_fitted.y_pred, [x_low, x_high],
+                                                             eff_emb_fitted.sigma_pred, fixed_step=True)
+                    sf_emb_fitted_hist = eff_data_fitted_hist.Clone()
+                    sf_emb_fitted_hist.Divide(eff_emb_fitted_hist)
+                    output_file.WriteTObject(eff_emb_fitted_hist, out_name_pattern.format('emb', 'fitted'), 'Overwrite')
+                    output_file.WriteTObject(sf_emb_fitted_hist, out_name_pattern.format('sf_emb', 'fitted'), 'Overwrite')
 
 output_file.Close()
 print('All done.')

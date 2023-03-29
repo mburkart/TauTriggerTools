@@ -12,6 +12,7 @@ import ROOT
 parser = argparse.ArgumentParser(description='Create turn on curves.')
 parser.add_argument('--input-data', required=True, type=str, help="skimmed data input")
 parser.add_argument('--input-dy-mc', required=True, type=str, help="skimmed DY MC input")
+parser.add_argument('--input-embedding', type=str, default=None, help="skimmed embedded imput")
 parser.add_argument('--output', required=True, type=str, help="output file prefix")
 parser.add_argument('--channels', required=False, type=str, default='etau,mutau,ditau', help="channels to process")
 parser.add_argument('--decay-modes', required=False, type=str, default='all,0,1,10,11', help="decay modes to process")
@@ -32,13 +33,16 @@ ROOT.TH1.SetDefaultSumw2()
 RootPlotting.ApplyDefaultGlobalStyle()
 
 trg_channel_dict = {
+        "2016": {
+            "etau": "trg_monitor_mu19tau20_singlel1",
+            "mutau": "trg_crossmuon_mu19tau20_singlel1",
+            "ditau": "trg_monitor_mu19tau35_mediso",
+            },
         "2017": {
             "etau": "trg_monitor_mu20tau27",
             "mutau": "trg_crossmuon_mu20tau27",
             "ditau": "trg_monitor_mu24tau35_tightiso_tightid",
             "ditauvbf": "trg_monitor_mu24tau20_looseiso_reg",
-            "ditauvbf_glob": "trg_monitor_mu24tau20_looseiso",
-            "ditauvbf_comp": "trg_monitor_mu24tau20_looseiso_comp",
             },
         "2018": {
             "etau": "trg_monitor_mu20tau27_hps",
@@ -47,6 +51,38 @@ trg_channel_dict = {
             "ditauvbf": "trg_monitor_mu27tau20_hps",
             },
         }
+
+def get_trigger_selection(channel, era, filetype):
+    if filetype != "data":
+        trg_sel = '{} > 0.5'.format(trg_channel_dict[era][channel])
+    else:
+        if era == "2016":
+            if channel == "etau":
+                trg_list = ["(trg_monitor_mu19tau20_singlel1&&(run<276215))",
+                            "(trg_monitor_mu19tau20&&(run>276215&&run<278270))",
+                            "(trg_monitor_mu19tau30&&(run>278270))"]
+                trg_sel = '(' + ')||('.join(['{} > 0.5'.format(trg) for trg in trg_list]) + ')'
+            elif channel in ["ditau"]:
+                trg_list = ["(trg_monitor_mu19tau35_mediso&&(run<=278808))",
+                            "(trg_monitor_mu19tau35_medcombiso&&(run>=278820))"]
+                trg_sel = '(' + ')||('.join(['{} > 0.5'.format(trg) for trg in trg_list]) + ')'
+            else:
+                trg_sel = '{} > 0.5'.format(trg_channel_dict[era][channel])
+        elif era == "2017":
+            if channel in ["ditau"]:
+                trg_list = ["trg_monitor_mu24tau35_tightiso_tightid",
+                            "trg_monitor_mu24tau40_mediso_tightid",
+                            "trg_monitor_mu24tau40_tightiso"]
+                trg_sel = '(' + ')||('.join(['{} > 0.5'.format(trg) for trg in trg_list]) + ')'
+            else:
+                trg_sel = '{} > 0.5'.format(trg_channel_dict[era][channel])
+        elif era == "2018":
+                trg_sel = "(({}&&(run>=317509))||({}&&(run<317509)))".format(
+                                    trg_channel_dict[args.era][channel],
+                                    trg_channel_dict[args.era][channel].rstrip("_hps")
+                                    )
+    return trg_sel
+
 
 bin_scans = {
     2:  [ 0.01 ],
@@ -85,7 +121,7 @@ class TurnOnData:
         self.eff = None
 
 def CreateHistograms(input_file, channels, decay_modes, discr_name, working_points, hist_models, label, var,
-                     output_file, isMC=False, usePU=False):
+                     output_file, filetype='data', usePU=False):
     df_main = ROOT.RDataFrame('mt/ntuple', input_file)
     selection = [
         "trg_singlemuon_27",
@@ -118,20 +154,14 @@ def CreateHistograms(input_file, channels, decay_modes, discr_name, working_poin
             turnOn_data[dm][wp] = {}
             for channel in channels:
                 turnOn_data[dm][wp][channel] = {}
-                if args.era != "2018" or isMC:
-                    df_ch = df_wp.Filter('{} > 0.5'.format(trg_channel_dict[args.era][channel]))
-                else:
-                    trg_string = "(({}&&(run>=317509))||({}&&(run<317509)))".format(
-                            trg_channel_dict[args.era][channel],
-                            trg_channel_dict[args.era][channel].rstrip("_hps")
-                            )
-                    print(trg_string)
-                    df_ch = df_wp.Filter('{} > 0.5'.format(trg_string))
+                trg_string = get_trigger_selection(channel, args.era, filetype)
+                print(trg_string)
+                df_ch = df_wp.Filter('{}'.format(trg_string))
                 if wp =="Tight":
                     report = df_main.Report()
                 for model_name, hist_model in hist_models.items():
                     turn_on = TurnOnData()
-                    if isMC and usePU:
+                    if filetype == 'mc' and usePU:
                         turn_on.hist_total = df_wp.Histo1D(hist_model, var, 'puWeight')
                         turn_on.hist_passed = df_ch.Histo1D(hist_model, var, 'puWeight')
                     else:
@@ -173,9 +203,15 @@ def CreateHistograms(input_file, channels, decay_modes, discr_name, working_poin
     return turnOn_data
 
 output_file = ROOT.TFile(args.output + '.root', 'RECREATE')
-input_files = [ args.input_data, args.input_dy_mc ]
+if args.input_embedding is None:
+    input_files = [ args.input_data, args.input_dy_mc ]
+else:
+    input_files = [ args.input_data, args.input_dy_mc, args.input_embedding]
 n_inputs = len(input_files)
-labels = [ 'data', 'mc' ]
+if args.input_embedding is None:
+    labels = [ 'data', 'mc' ]
+else:
+    labels = [ 'data', 'mc', 'emb' ]
 var = 'pt_p'
 title, x_title = '#tau p_{T}', '#tau p_{T} (GeV)'
 decay_modes = args.decay_modes.split(',')
@@ -192,9 +228,9 @@ for input_id in range(n_inputs):
     print("Creating {} histograms...".format(labels[input_id]))
     turnOn_data[input_id] = CreateHistograms(input_files[input_id], channels, decay_modes, 'byDeepTau2017v2p1VSjet',
                                              working_points, hist_models, labels[input_id], var, output_file,
-                                             isMC="mc" in labels[input_id], usePU=False)
+                                             filetype=labels[input_id], usePU=False)
 
-colors = [ ROOT.kRed, ROOT.kBlack ]
+colors = [ ROOT.kRed, ROOT.kBlack , ROOT.kBlue]
 canvas = RootPlotting.CreateCanvas()
 
 n_plots = len(decay_modes) * len(channels) * len(working_points)
