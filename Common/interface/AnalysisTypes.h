@@ -54,17 +54,23 @@ ENUM_NAMES(GenQcdMatch) = {
     { GenQcdMatch::Gluon, "gen_gluon" }
 };
 
-enum class TauType { e = 0, mu = 1, tau = 2, jet = 3 };
-ENUM_NAMES(TauType) = {
-    { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" }
+enum class LegType { e = 1, mu = 2, tau = 4, jet = 8 };
+ENUM_NAMES(LegType) = {
+    { LegType::e, "e" }, { LegType::mu, "mu" }, { LegType::tau, "tau" }, { LegType::jet, "jet" }
 };
 
-inline constexpr TauType GenMatchToTauType(GenLeptonMatch gen_match)
+inline constexpr LegType GenMatchToLegType(GenLeptonMatch gen_match)
 {
-    if(gen_match == GenLeptonMatch::Electron || gen_match == GenLeptonMatch::TauElectron) return TauType::e;
-    if(gen_match == GenLeptonMatch::Muon || gen_match == GenLeptonMatch::TauMuon) return TauType::mu;
-    if(gen_match == GenLeptonMatch::Tau) return TauType::tau;
-    return TauType::jet;
+    if(gen_match == GenLeptonMatch::Electron || gen_match == GenLeptonMatch::TauElectron) return LegType::e;
+    if(gen_match == GenLeptonMatch::Muon || gen_match == GenLeptonMatch::TauMuon) return LegType::mu;
+    if(gen_match == GenLeptonMatch::Tau) return LegType::tau;
+    return LegType::jet;
 }
+
+enum class TauSelection { gen = 1, pt = 2, MVA = 4, DeepTau = 8 };
+ENUM_NAMES(TauSelection) = {
+    { TauSelection::gen, "gen" }, { TauSelection::pt, "pt" }, { TauSelection::MVA, "MVA"},
+    { TauSelection::DeepTau, "DeepTau" }
+};
 
 } // namespace analysis

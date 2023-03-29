@@ -1,3 +1,5 @@
+import re
+
 def readFileList(fileList, inputFileName, fileNamePrefix):
     """read intput file list from a text file"""
     inputFile = open(inputFileName, 'r')
@@ -11,6 +13,13 @@ def addFilesToList(fileList, inputFiles, fileNamePrefix):
     for name in inputFiles:
         if len(name) > 0 and name[0] != '#':
             fileList.append(fileNamePrefix + name)
+
+def getYear(period):
+    """returns year for the given datataking period"""
+    match = re.search(r'^Run([0-9]+)', period)
+    if match is None:
+        raise RuntimeError('Unable to extract year from the datataking period = "{}"'.format(period))
+    return int(match.group(1))
 
 def getGlobalTag(period, isMC):
     """ Returns global tag that should be used to run tuple production with 102X release.
@@ -59,7 +68,7 @@ def getMetFilters(period, isMC):
 
     metFilters_common = [
         "Flag_goodVertices", "Flag_globalSuperTightHalo2016Filter", "Flag_HBHENoiseFilter", "Flag_HBHENoiseIsoFilter",
-        "Flag_EcalDeadCellTriggerPrimitiveFilter", "Flag_BadPFMuonFilter", "ecalBadCalibReducedMINIAODFilter"
+        "Flag_EcalDeadCellTriggerPrimitiveFilter", "Flag_BadPFMuonFilter"
     ]
     filters = metFilters_common[:]
     if period in ['Run2017', 'Run2018', 'Run2018ABC', 'Run2018D']:

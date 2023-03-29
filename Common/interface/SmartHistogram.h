@@ -1,0 +1,452 @@
+/*! Definition of class SmartHistogram that allows to create ROOT-compatible histograms.
+This file is part of https://github.com/cms-tau-pog/TauTriggerTools. */
+
+#pragma once
+
+#include <deque>
+#include <string>
+#include <limits>
+#include <stdexcept>
+#include <memory>
+#include <fstream>
+#include <mutex>
+
+#include <TObject.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TTree.h>
+#include <TGraph.h>
+
+#include "RootExt.h"
+#include "TextIO.h"
+#include "NumericPrimitives.h"
+
+namespace root_ext {
+
+class AbstractHistogram {
+public:
+    AbstractHistogram(const std::string& _name)
+        : name(_name), outputDirectory(nullptr) {}
+    AbstractHistogram(const AbstractHistogram& other) : name(other.name), outputDirectory(other.outputDirectory) {}
+    virtual ~AbstractHistogram() {}
+
+    virtual void WriteRootObject() = 0;
+    virtual void SetOutputDirectory(TDirectory* directory) { outputDirectory = directory; }
+
+    TDirectory* GetOutputDirectory() const { return outputDirectory; }
+    const std::string& Name() const { return name; }
+    virtual void SetName(const std::string& _name) { name = _name; }
+
+private:
+    std::string name;
+    TDirectory* outputDirectory;
+};
+
+namespace detail {
+
+template<typename ValueType>
+class Base1DHistogram : public AbstractHistogram {
+public:
+    using const_iterator = typename std::deque<ValueType>::const_iterator;
+    using RootContainer = TTree;
+
+    Base1DHistogram(const std::string& name) : AbstractHistogram(name) {}
+
+    const std::deque<ValueType>& Data() const { return data; }
+    size_t size() const { return data.size(); }
+    const_iterator begin() const { return data.begin(); }
+    const_iterator end() const { return data.end(); }
+
+    void Fill(const ValueType& value)
+    {
+        data.push_back(value);
+    }
+
+    virtual void WriteRootObject()
+    {
+        if(!GetOutputDirectory()) return;
+        std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
+        rootTree->SetDirectory(GetOutputDirectory());
+        ValueType branch_value;
+        rootTree->Branch("values", &branch_value);
+        for(const ValueType& value : data) {
+            branch_value = value;
+            rootTree->Fill();
+        }
+        root_ext::WriteObject(*rootTree);
+    }
+
+    void CopyContent(TTree& rootTree)
+    {
+        data.clear();
+        ValueType branch_value;
+        TBranch* branch;
+        rootTree.SetBranchAddress("values", &branch_value, &branch);
+        Long64_t N = rootTree.GetEntries();
+        for(Long64_t n = 0; n < N; ++n) {
+            rootTree.GetEntry(n);
+            data.push_back(branch_value);
+        }
+        rootTree.ResetBranchAddress(branch);
+    }
+
+private:
+    std::deque<ValueType> data;
+};
+
+template<typename NumberType>
+class Base2DHistogram : public AbstractHistogram {
+public:
+    struct Value {
+        NumberType x, y;
+        Value() {}
+        Value(NumberType _x, NumberType _y) : x(_x), y(_y) {}
+    };
+
+    using const_iterator = typename std::deque<Value>::const_iterator;
+    using RootContainer = TTree;
+
+    Base2DHistogram(const std::string& name) : AbstractHistogram(name) {}
+
+    const std::deque<Value>& Data() const { return data; }
+    size_t size() const { return data.size(); }
+    const_iterator begin() const { return data.begin(); }
+    const_iterator end() const { return data.end(); }
+
+    void Fill(const NumberType& x, const NumberType& y)
+    {
+        data.push_back(Value(x, y));
+    }
+
+    virtual void WriteRootObject()
+    {
+        if(!GetOutputDirectory()) return;
+        std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
+        rootTree->SetDirectory(GetOutputDirectory());
+        NumberType branch_value_x, branch_value_y;
+        rootTree->Branch("x", &branch_value_x);
+        rootTree->Branch("y", &branch_value_y);
+        for(const Value& value : data) {
+            branch_value_x = value.x;
+            branch_value_y = value.y;
+            rootTree->Fill();
+        }
+        root_ext::WriteObject(*rootTree);
+    }
+
+    void CopyContent(TTree& rootTree)
+    {
+        data.clear();
+        NumberType branch_value_x, branch_value_y;
+        TBranch *branch_x, *branch_y;
+        rootTree.SetBranchAddress("x", &branch_value_x, &branch_x);
+        rootTree.SetBranchAddress("y", &branch_value_y, &branch_y);
+        Long64_t N = rootTree.GetEntries();
+        for(Long64_t n = 0; n < N; ++n) {
+            rootTree.GetEntry(n);
+            data.push_back(Value(branch_value_x, branch_value_y));
+        }
+        rootTree.ResetBranchAddress(branch_x);
+        rootTree.ResetBranchAddress(branch_y);
+    }
+
+private:
+    std::deque<Value> data;
+};
+
+} // namespace detail
+
+template<typename ValueType>
+class SmartHistogram;
+
+template<>
+class SmartHistogram<double> : public detail::Base1DHistogram<double> {
+public:
+    SmartHistogram(const std::string& name) : Base1DHistogram<double>(name) {}
+};
+
+template<>
+class SmartHistogram<float> : public detail::Base1DHistogram<float> {
+public:
+    SmartHistogram(const std::string& name) : Base1DHistogram<float>(name) {}
+};
+
+template<>
+class SmartHistogram<int> : public detail::Base1DHistogram<int> {
+public:
+    SmartHistogram(const std::string& name) : Base1DHistogram<int>(name) {}
+};
+
+template<>
+class SmartHistogram<unsigned> : public detail::Base1DHistogram<unsigned> {
+public:
+    SmartHistogram(const std::string& name) : Base1DHistogram<unsigned>(name) {}
+};
+
+template<>
+class SmartHistogram<bool> : public detail::Base1DHistogram<bool> {
+public:
+    SmartHistogram(const std::string& name) : Base1DHistogram<bool>(name) {}
+};
+
+template<>
+class SmartHistogram< detail::Base2DHistogram<double>::Value > : public detail::Base2DHistogram<double> {
+public:
+    SmartHistogram(const std::string& name) : Base2DHistogram<double>(name) {}
+};
+
+template<>
+class SmartHistogram< detail::Base2DHistogram<float>::Value > : public detail::Base2DHistogram<float> {
+public:
+    SmartHistogram(const std::string& name) : Base2DHistogram<float>(name) {}
+};
+
+template<>
+class SmartHistogram< detail::Base2DHistogram<int>::Value > : public detail::Base2DHistogram<int> {
+public:
+    SmartHistogram(const std::string& name) : Base2DHistogram<int>(name) {}
+};
+
+template<>
+class SmartHistogram< detail::Base2DHistogram<bool>::Value > : public detail::Base2DHistogram<bool> {
+public:
+    SmartHistogram(const std::string& name) : Base2DHistogram<bool>(name) {}
+};
+
+template<>
+class SmartHistogram<TH1D> : public TH1D, public AbstractHistogram {
+public:
+    using RootContainer = TH1D;
+    using Range = ::analysis::Range<double>;
+    using MultiRange = ::analysis::MultiRange<Range>;
+
+    SmartHistogram(const std::string& name, int nbins, double low, double high)
+        : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true),
+          use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
+
+    SmartHistogram(const std::string& name, const std::vector<double>& bins)
+        : TH1D(name.c_str(), name.c_str(), static_cast<int>(bins.size()) - 1, bins.data()), AbstractHistogram(name),
+          store(true), use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
+
+    SmartHistogram(const std::string& name, int nbins, double low, double high, const std::string& x_axis_title,
+                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width,
+                   bool _store)
+        : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(_store),
+          use_log_y(_use_log_y), max_y_sf(_max_y_sf), divide_by_bin_width(_divide_by_bin_width)
+    {
+        SetXTitle(x_axis_title.c_str());
+        SetYTitle(y_axis_title.c_str());
+    }
+
+    SmartHistogram(const std::string& name, const std::vector<double>& bins, const std::string& x_axis_title,
+                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width,
+                   bool _store)
+        : TH1D(name.c_str(), name.c_str(), static_cast<int>(bins.size()) - 1, bins.data()), AbstractHistogram(name),
+          store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf), divide_by_bin_width(_divide_by_bin_width)
+    {
+        SetXTitle(x_axis_title.c_str());
+        SetYTitle(y_axis_title.c_str());
+    }
+
+    SmartHistogram(const TH1D& other, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width)
+        : TH1D(other), AbstractHistogram(other.GetName()), store(false), use_log_y(_use_log_y), max_y_sf(_max_y_sf),
+          divide_by_bin_width(_divide_by_bin_width) {}
+
+    virtual void SetName(const char* _name) override
+    {
+        TH1D::SetName(_name);
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void SetName(const std::string& _name) override
+    {
+        TH1D::SetName(_name.c_str());
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void WriteRootObject() override
+    {
+        if(store && GetOutputDirectory())
+            root_ext::WriteObject(*this);
+    }
+
+    virtual void SetOutputDirectory(TDirectory* directory) override
+    {
+        TDirectory* dir = store ? directory : nullptr;
+        AbstractHistogram::SetOutputDirectory(dir);
+        SetDirectory(dir);
+    }
+
+    bool UseLogX() const { return use_log_x; }
+    bool UseLogY() const { return use_log_y; }
+    double MaxYDrawScaleFactor() const { return max_y_sf; }
+    double MinYDrawScaleFactor() const { return min_y_sf; }
+    std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
+    std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
+    bool NeedToDivideByBinWidth() const { return divide_by_bin_width; }
+    void SetLegendTitle(const std::string _legend_title) { legend_title = _legend_title; }
+    const std::string& GetLegendTitle() const { return legend_title; }
+    const MultiRange GetBlindRanges() const { return blind_ranges; }
+
+    bool TryGetMinY(double& _y_min) const
+    {
+        if(!y_min) return false;
+        _y_min = *y_min;
+        return true;
+    }
+
+    double GetSystematicUncertainty() const { return syst_unc; }
+    void SetSystematicUncertainty(double _syst_unc) { syst_unc = _syst_unc; }
+    double GetPostfitScaleFactor() const { return postfit_sf; }
+    void SetPostfitScaleFactor(double _postfit_sf) { postfit_sf = _postfit_sf; }
+
+    void CopyContent(const TH1& other)
+    {
+        if(other.GetNbinsX() != GetNbinsX())
+            throw analysis::exception("Unable to copy histogram content: source and destination have different number"
+                                      " of bins.");
+        for(Int_t n = 0; n <= other.GetNbinsX() + 1; ++n) {
+            if(GetBinLowEdge(n) != other.GetBinLowEdge(n) || GetBinWidth(n) != other.GetBinWidth(n))
+                throw analysis::exception("Unable to copy histogram content from histogram '%1%' into '%2%':"
+                    " bin %3% is not compatible between the source and destination."
+                    " (LowEdge, Width): (%4%, %5%) != (%6%, %7%).")
+                    % other.GetName() % Name() % n % other.GetBinLowEdge(n) % other.GetBinWidth(n) % GetBinLowEdge(n)
+                    % GetBinWidth(n);
+            SetBinContent(n, other.GetBinContent(n));
+            SetBinError(n, other.GetBinError(n));
+        }
+    }
+
+    void AddHistogram(const SmartHistogram<TH1D>& other)
+    {
+        const double integral = Integral(), other_integral = other.Integral(), tot_integral = integral + other_integral;
+        const double post_integral = postfit_sf * integral, other_post_integral = other.postfit_sf * other_integral,
+                     tot_post_integral = post_integral + other_post_integral;
+        if(tot_integral != 0) {
+            postfit_sf = tot_post_integral / tot_integral;
+            syst_unc = std::hypot(syst_unc * post_integral, other.syst_unc * other_post_integral) / tot_post_integral;
+        }
+        Add(&other, 1);
+    }
+
+private:
+    bool store{true};
+    bool use_log_x{false}, use_log_y{false};
+    double max_y_sf{1}, min_y_sf{1};
+    boost::optional<double> y_min;
+    bool divide_by_bin_width{false};
+    std::string legend_title;
+    MultiRange blind_ranges;
+    double syst_unc{0}, postfit_sf{1};
+};
+
+template<>
+class SmartHistogram<TH2D> : public TH2D, public AbstractHistogram {
+public:
+    using RootContainer = TH2D;
+
+    SmartHistogram(const std::string& name,
+                   int nbinsx, double xlow, double xup,
+                   int nbinsy, double ylow, double yup)
+        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup),
+          AbstractHistogram(name), store(true), use_log_y(false), max_y_sf(1) {}
+
+    SmartHistogram(const std::string& name, int nbinsx, double xlow, double xup, int nbinsy, double ylow,
+                   double yup, const std::string& x_axis_title, const std::string& y_axis_title, bool _use_log_y,
+                   double _max_y_sf, bool _store)
+        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup),
+          AbstractHistogram(name), store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf)
+    {
+        SetXTitle(x_axis_title.c_str());
+        SetYTitle(y_axis_title.c_str());
+    }
+
+    SmartHistogram(const std::string& name, const std::vector<double>& binsx, const std::vector<double>& binsy)
+        : TH2D(name.c_str(), name.c_str(), static_cast<int>(binsx.size()) - 1, binsx.data(),
+               static_cast<int>(binsy.size()) - 1, binsy.data()), AbstractHistogram(name),
+          store(true), use_log_y(false), max_y_sf(1) {}
+
+    virtual void WriteRootObject() override
+    {
+        if(store && GetOutputDirectory())
+            root_ext::WriteObject(*this);
+    }
+
+    virtual void SetName(const char* _name) override
+    {
+        TH2D::SetName(_name);
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void SetName(const std::string& _name) override
+    {
+        TH2D::SetName(_name.c_str());
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void SetOutputDirectory(TDirectory* directory) override
+    {
+        TDirectory* dir = store ? directory : nullptr;
+        AbstractHistogram::SetOutputDirectory(dir);
+        SetDirectory(dir);
+    }
+
+    bool UseLogY() const { return use_log_y; }
+    double MaxYDrawScaleFactor() const { return max_y_sf; }
+    std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
+    std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
+
+    void CopyContent(const TH2D& other)
+    {
+        if(other.GetNbinsX() != GetNbinsX() || other.GetNbinsY() != GetNbinsY())
+            throw analysis::exception("Unable to copy histogram content: source and destination have different number"
+                                      " of bins.");
+        for(Int_t n = 0; n <= GetNbinsX() + 1; ++n) {
+            for(Int_t k = 0; k <= GetNbinsY() + 1; ++k) {
+            if(GetXaxis()->GetBinLowEdge(n) != other.GetXaxis()->GetBinLowEdge(n)
+                    || GetXaxis()->GetBinWidth(n) != other.GetXaxis()->GetBinWidth(n)
+                    || GetYaxis()->GetBinLowEdge(k) != other.GetYaxis()->GetBinLowEdge(k)
+                    || GetYaxis()->GetBinWidth(k) != other.GetYaxis()->GetBinWidth(k))
+                throw analysis::exception("Unable to copy histogram content: bin (%1%, %2% is not compatible between"
+                                          " the source and destination.") % n % k;
+            SetBinContent(n, k, other.GetBinContent(n, k));
+            SetBinError(n, k, other.GetBinError(n, k));
+            }
+        }
+    }
+
+private:
+    bool store;
+    bool use_log_y;
+    double max_y_sf;
+};
+
+template<>
+class SmartHistogram<TGraph> : public AbstractHistogram {
+public:
+    using DataVector = std::vector<double>;
+    using RootContainer = TGraph;
+    using AbstractHistogram::AbstractHistogram;
+
+
+    void AddPoint(double x, double y)
+    {
+        x_vector.push_back(x);
+        y_vector.push_back(y);
+    }
+
+    const DataVector& GetXvalues() const { return x_vector; }
+    const DataVector& GetYvalues() const { return y_vector; }
+
+    virtual void WriteRootObject() override
+    {
+        std::unique_ptr<TGraph> graph(new TGraph(static_cast<int>(x_vector.size()), x_vector.data(), y_vector.data()));
+        if(GetOutputDirectory())
+            root_ext::WriteObject(*graph, GetOutputDirectory(), Name());
+    }
+
+private:
+    DataVector x_vector, y_vector;
+};
+
+} // root_ext

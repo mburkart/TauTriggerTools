@@ -44,28 +44,18 @@ private:
 
 #define TAU_IDS() \
     TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6{Raw}", true, "VLoose Loose Medium Tight VTight") \
-    TAU_ID(againstElectronMVA62018, "againstElectron{wp}MVA6{Raw}2018", true, "VLoose Loose Medium Tight VTight") \
     TAU_ID(againstMuon3, "againstMuon{wp}3", false, "Loose Tight") \
     TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "by{wp}CombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
            "Loose Medium Tight") \
-    TAU_ID(byIsolationMVArun2v1DBoldDMwLT2016, "by{wp}IsolationMVArun2v1DBoldDMwLT{raw}2016", true, \
-           "VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2v1DBnewDMwLT2016, "by{wp}IsolationMVArun2v1DBnewDMwLT{raw}2016", true, \
-           "VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "by{wp}IsolationMVArun2017v2DBoldDMwLT{raw}2017", true, \
            "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
-           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBnewDMwLT2017, "by{wp}IsolationMVArun2017v2DBnewDMwLT{raw}2017", true, \
-           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2VSe, "by{wp}DeepTau2017v2VSe{raw}", true, \
+    TAU_ID(byDeepTau2017v2p1VSe, "by{wp}DeepTau2017v2p1VSe{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2VSmu, "by{wp}DeepTau2017v2VSmu{raw}", true, \
+    TAU_ID(byDeepTau2017v2p1VSmu, "by{wp}DeepTau2017v2p1VSmu{raw}", true, \
        "VLoose Loose Medium Tight") \
-    TAU_ID(byDeepTau2017v2VSjet, "by{wp}DeepTau2017v2VSjet{raw}", true, \
+    TAU_ID(byDeepTau2017v2p1VSjet, "by{wp}DeepTau2017v2p1VSjet{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
-
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
 enum class TauIdDiscriminator { TAU_IDS() };
@@ -129,12 +119,14 @@ struct TauIdDescriptor {
                    const std::string& raw_suffix = "raw") const
     {
         const std::string disc_name = ::analysis::ToString(discriminator);
-        if(has_raw)
-            tuple.template get<float>(prefix + disc_name + raw_suffix) = tau ? tau->tauID(raw_name) : default_value;
+        if(has_raw) {
+            const float value = tau && tau->isTauIDAvailable(raw_name) ? tau->tauID(raw_name) : default_value;
+            tuple.template get<float>(prefix + disc_name + raw_suffix) = value;
+        }
         if(!working_points.empty()) {
             TauIdResults id_results;
             for(const auto& wp_entry : working_points) {
-                const bool result = tau && tau->tauID(wp_entry.second) > 0.5;
+                const bool result = tau && tau->isTauIDAvailable(wp_entry.second) && tau->tauID(wp_entry.second) > 0.5f;
                 id_results.SetResult(wp_entry.first, result);
             }
             tuple.template get<TauIdResults::BitsContainer>(prefix + disc_name) = id_results.GetResultBits();

@@ -2,9 +2,10 @@ from ROOT import *
 from array import array
 gROOT.SetBatch(True)
 from math import sqrt
-from functions import * 
+from functions import *
 from binning2017 import *
 from binning2018 import *
+import numpy as np
 
 #choose which year do you want to run it:
 Samples2016 = False
@@ -27,7 +28,7 @@ elif(Samples2018 and not Samples2017 and not Samples2016):
 	files = files2018
 else:
 	"Please select only one of the year!"
-		
+
 gStyle.SetFrameLineWidth(1)
 gStyle.SetPadBottomMargin(0.13)
 gStyle.SetPadLeftMargin(0.15)
@@ -56,9 +57,19 @@ elif(Samples2017):
 	bins = getbinning2017()
 elif(Samples2018):
 	bins = getbinning2018()
-	
-bin = bins.getBinning()
-binDM = bins.getBinningDM()
+
+#bin = bins.getBinning()
+#binDM = bins.getBinningDM()
+bin_ref = np.arange(20, 501, 1).tolist()
+bin = {}
+binDM = {}
+for trig in triggers:
+	bin[trig] = bin_ref
+	binDM[trig] = {}
+	for dm in tauDMs:
+		binDM[trig][dm] = {}
+		for sample_type in types:
+			binDM[trig][dm][sample_type] = bin_ref
 #binDM = bins.getBinningPerDM()
 
 hPtDen = [[],[],[]]
@@ -68,7 +79,7 @@ hPtDenDM = [[],[],[],[]]
 hPtNumDM = [[],[],[],[]]
 
 for ipath, trigger in enumerate(triggers):
-	
+
 	print "bin[", trigger, "]", bin[trigger]
 	hPtNum.append([])
 	hPtDen.append([])
@@ -87,60 +98,54 @@ for ipath, trigger in enumerate(triggers):
 			histoname = "histo_" + typ + "_" + wp + "_" + trigger
 			hPtNumDM[ipath][index].append([])
 			hPtDenDM[ipath][index].append([])
-			
+
 			hPtDen[ipath][index].append(TH1F (histoname + "_Den", "", len(bin[trigger])-1, array('f',bin[trigger])))
 			hPtNum[ipath][index].append(TH1F (histoname + "_Num", "", len(bin[trigger])-1, array('f',bin[trigger])))
 
 			# per DM
 			for idm, DM in enumerate(tauDMs):
-				if(Samples2017):
- 					hPtDenDM[ipath][index][ind].append(TH1F (histoname + "_Den_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
-					hPtNumDM[ipath][index][ind].append(TH1F (histoname + "_Num_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
-				elif(Samples2018):
-					hPtDenDM[ipath][index][ind].append(TH1F (histoname + "_Den_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
-					hPtNumDM[ipath][index][ind].append(TH1F (histoname + "_Num_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
-					#hPtDenDM[ipath][index][ind].append(TH1F (histoname + "_Den_" + DM, "", len(binDM[trigger])-1, array('f',binDM[trigger])))
-					#hPtNumDM[ipath][index][ind].append(TH1F (histoname + "_Num_" + DM, "", len(binDM[trigger])-1, array('f',binDM[trigger])))
- 
+				hPtDenDM[ipath][index][ind].append(TH1F (histoname + "_Den_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
+				hPtNumDM[ipath][index][ind].append(TH1F (histoname + "_Num_" + DM, "", len(binDM[trigger][DM][typ])-1, array('f',binDM[trigger][DM][typ])))
+
 for index, filename in enumerate(files):
 	print  "filename", filename
-	
+
 	file = TFile.Open(filename)
 	tree = file.Get('TagAndProbe')
-	triggerNamesTree = file.Get("triggerNames")	
-	
+	triggerNamesTree = file.Get("triggerNames")
+
 	print "Populating histograms"
 
 	Nevts = 0
 	for iEv in range (0, tree.GetEntries()):
 		tree.GetEntry(iEv)
-			
+
 		tauPt = tree.tauPt
 		HLTPt = tree.hltPt
 		tauEta = tree.tauEta
 		tauPhi = tree.tauPhi
 		tauDM = tree.tauDM
 		Nvtx = tree.Nvtx
-		
+
 		# tau Energy Shift (SF) is only applied for 2017 for now!
 		if("DYJets" in filename):
 			puweight = tree.puweight
 			if (Samples2017):
 				tauPt_ESshifted = tree.tauPt_ESshifted
-			else: 
+			else:
 				tauPt_ESshifted = tree.tauPt
 		else:
 			puweight=1
 			tauPt_ESshifted = tree.tauPt
 
-		vvlooseWP = tree.byVVLooseIsolationMVArun2017v2DBoldDMwLT2017	
-		vlooseWP = tree.byVLooseIsolationMVArun2017v2DBoldDMwLT2017	
-		looseWP = tree.byLooseIsolationMVArun2017v2DBoldDMwLT2017	
-		mediumWP = tree.byMediumIsolationMVArun2017v2DBoldDMwLT2017	
+		vvlooseWP = tree.byVVLooseIsolationMVArun2017v2DBoldDMwLT2017
+		vlooseWP = tree.byVLooseIsolationMVArun2017v2DBoldDMwLT2017
+		looseWP = tree.byLooseIsolationMVArun2017v2DBoldDMwLT2017
+		mediumWP = tree.byMediumIsolationMVArun2017v2DBoldDMwLT2017
 		tightWP = tree.byTightIsolationMVArun2017v2DBoldDMwLT2017
-		vtightWP = tree.byVTightIsolationMVArun2017v2DBoldDMwLT2017	
-		vvtightWP = tree.byVVTightIsolationMVArun2017v2DBoldDMwLT2017	
-		
+		vtightWP = tree.byVTightIsolationMVArun2017v2DBoldDMwLT2017
+		vvtightWP = tree.byVVTightIsolationMVArun2017v2DBoldDMwLT2017
+
 		if("Run2016BtoH" in filename or "190306" in filename):
 			hasHLTditauPath_3or4 = tree.hasHLTditauPath_3or4
 			hasHLTetauPath_0and1 = tree.hasHLTetauPath_0and1
@@ -159,10 +164,10 @@ for index, filename in enumerate(files):
 
 		Nevents = tree.EventNumber
 		Nevts =Nevts + 1
-		
+
 		#bkgSubW = 1. if tree.isOS else -1.
 		weight = tree.bkgSubW*puweight
-		
+
 		if("Run2018A" in filename or "Autumn18" in filename):
                         HLTHPSpaths18 = [hasHLTditauPath_15or20HPS, hasHLTmutauPath_14HPS , hasHLTetauPath_14HPS ]
 			HLTpaths18 = [hasHLTditauPath_4or5or6noHPS, hasHLTmutauPath_8noHPS, hasHLTetauPath_8noHPS]
@@ -172,7 +177,7 @@ for index, filename in enumerate(files):
 			HLTpaths16 = [hasHLTditauPath_3or4, hasHLTmutauPath_1 , hasHLTetauPath_0and1 ]
 
 		WPoints = [vvlooseWP, vlooseWP, looseWP, mediumWP, tightWP, vtightWP, vvtightWP]
-		
+
 		oneProng = False
 		oneProngPiZero= False
 		threeProng = False
@@ -183,7 +188,7 @@ for index, filename in enumerate(files):
 			oneProngPiZero = True
 		if (tauDM ==10):
 			threeProng = True
-			
+
 		DMs = [oneProng, oneProngPiZero, threeProng]
 
 		# Filling the histograms
@@ -324,17 +329,19 @@ for ipath, trigger in enumerate(triggers):
 	for WPind, wp in enumerate(WPs):
 
 		for index, typ in enumerate(types):
-							
+
 			g_efficiency =TGraphAsymmErrors()
 			g_efficiency.BayesDivide(hPtNum[ipath][index][WPind],hPtDen[ipath][index][WPind])
 
-			funct = functions(g_efficiency, trigger + "Efficiency_" + wp +"_"+ typ, 0, 0, 0, 0, 0, 0, 0) 			
-			h_efficiency = funct.getTH1FfromTGraphAsymmErrors() 
-			
+			funct = functions(g_efficiency, trigger + "Efficiency_" + wp +"_"+ typ, 0, 0, 0, 0, 0, 0, 0)
+			h_efficiency = funct.getTH1FfromTGraphAsymmErrors()
+
 			# write the histograms/graphs into the output ROOT file before the fit
 			g_efficiency.Write(trigger +"_gEfficiency_" + wp +"_"+ typ)
 			h_efficiency.Write(trigger +"_hEfficiency_" + wp +"_"+ typ)
-			
+			hPtNum[ipath][index][WPind].Write(trigger +"_pass_" + wp +"_"+ typ)
+			hPtDen[ipath][index][WPind].Write(trigger +"_total_" + wp +"_"+ typ)
+
 			# Set the title of the histograms/graphs and their axes
 			g_efficiency.SetTitle(trigger +"Path_" + wp +"_"+ typ)
 			g_efficiency.GetYaxis().SetTitle("Efficiency")
@@ -342,16 +349,17 @@ for ipath, trigger in enumerate(triggers):
 			h_efficiency.SetTitle(trigger +"Path_" + wp +"_"+ typ)
 			h_efficiency.GetYaxis().SetTitle("Efficiency")
 			h_efficiency.GetXaxis().SetTitle("Offline p_{T}^{#tau} [GeV]")
-			
+
 			# per DM efficiencies
 			for idm, DM in enumerate(tauDMs):
 				g_efficiencyDM = TGraphAsymmErrors()
 				g_efficiencyDM.BayesDivide(hPtNumDM[ipath][index][WPind][idm],hPtDenDM[ipath][index][WPind][idm])
-				funct2 = functions(g_efficiencyDM, trigger + "_Efficiency" + wp +"_"+ typ + "_" + DM, idm, 0 ,0, 0, 0, 0, 0) 		
+				funct2 = functions(g_efficiencyDM, trigger + "_Efficiency" + wp +"_"+ typ + "_" + DM, idm, 0 ,0, 0, 0, 0, 0)
 				h_efficiencyDM = funct2.getTH1FfromTGraphAsymmErrors()
 				g_efficiencyDM.Write(trigger +"_gEfficiency_" + wp +"_" + typ + "_" + DM)
 				h_efficiencyDM.Write(trigger +"_hEfficiency_" + wp +"_" + typ + "_" + DM)
+				hPtNumDM[ipath][index][WPind][idm].Write(trigger +"_pass_" + wp +"_" + typ + "_" + DM)
+				hPtDenDM[ipath][index][WPind][idm].Write(trigger +"_total_" + wp +"_" + typ + "_" + DM)
 
 file.Close()
 print "The output ROOT file has been created: ../data/" + outputname
-
